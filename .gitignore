@@ -34,3 +34,4 @@
 # codeblocks
 *.cbp
 *.layout
+*.depend
