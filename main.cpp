@@ -1,23 +1,32 @@
 #include <iostream>
 #include <string>
 #include <thread>
+#include <vector>
+#include <algorithm>
 #include <stdio.h>
 
 using namespace std;
 
+// Hello Concurrent World
 void hello() {
     cout << "Hello Concurrent world!" << endl;
 }
 
+// thread function
 void do_something(int i) {
     cout << i << endl;
 }
 
+// current thread throw exception
 void do_something_in_current_thread() {
     cout << "do something in current thread" << endl;
     throw;
 }
 
+// callable type -- with operator()
+// thread my_thread(background_task()); Error!
+// thread my_thread((background_task())); OK!
+// thread my_thread{background_task()}; OK!
 class background_task {
 public:
     void operator()() const {
@@ -25,6 +34,7 @@ public:
     }
 };
 
+// reference to local variable, may be accessed after being destroyed
 struct func {
     int& i;
     func(int& i_) : i(i_) { cout << "func()" << endl; }
@@ -37,6 +47,7 @@ struct func {
     }
 };
 
+// RAII
 class thread_guard {
     thread& t;
 public:
@@ -60,12 +71,14 @@ void f() {
     do_something_in_current_thread();
 }
 
-void f1(int i, const string s) {
-    cout << "h" << endl;
+// Transfer parameter to thread
+void f1(int i, const string& s) {
     cout << i << " " << s << endl;
 }
 
 void not_oops(int some_param) {
+//    thread t(f1, 3, "hello");
+//    t.join();
     char buffer[1024];
     sprintf(buffer, "%i", some_param);
     thread t(f1, 3, string(buffer));
@@ -103,6 +116,7 @@ void update_data_for_widget(widget_data& w) {
     w.data = 1;
 }
 
+// transfer reference of object
 void oops_again() {
     widget_data w(0);
     thread t(update_data_for_widget, ref(w));
@@ -111,6 +125,9 @@ void oops_again() {
     cout << w.data << endl;
 }
 
+// use member function as thread function -- first argument
+// a pointer of object -- second argument, member function acting on it
+// and from the 3rd argument as the member function's arguments
 void oops() {
     widget_data w(2);
     int num(3);
@@ -118,6 +135,7 @@ void oops() {
     t.join();
 }
 
+// move
 void process_widget(unique_ptr<widget_data> p) {
     p->data = 12;
     p->show(1);
@@ -130,8 +148,77 @@ void func_ptra() {
     t.join();
 }
 
+void some_function() {
+    cout << "some function" << endl;
+}
+
+// return thread
+thread ff() {
+    return thread(some_function);
+}
+
+void some_other_function() {
+    cout << "some other function" << endl;
+}
+
+// return thread
+thread gg() {
+    thread t(some_other_function);
+    return t;
+}
+
+// use thread as parameter
+void fff(thread t) {
+    t.join();
+}
+
+void ggg() {
+    fff(thread(some_function));
+    thread t(some_other_function);
+    fff(move(t));
+}
+
+//
+class scoped_thread {
+    thread t;
+public:
+    explicit scoped_thread(thread t_) : t(move(t_)) {
+        cout << "scoped_thread()" << endl;
+        if(!t.joinable()) {
+            throw logic_error("No thread");
+        }
+    }
+    ~scoped_thread() {
+        cout << "~scoped_thread()" << endl;
+        t.join();
+    }
+    scoped_thread(const scoped_thread&) = delete;
+    scoped_thread& operator=(const scoped_thread&) = delete;
+};
+
+void ffff() {
+    int some_local_state = 1;
+    func my_func(some_local_state);
+    thread my_thread(my_func);
+    scoped_thread t(move(my_thread));
+    do_something_in_current_thread();
+}
+
+// mass production thread
+void do_work(unsigned id) {
+    cout << "do work " << id << endl;
+}
+
+void fffff() {
+    vector<thread> threads;
+    for(unsigned i = 0; i < 20; ++i) {
+        threads.push_back(thread(do_work, i));
+    }
+    for_each(threads.begin(), threads.end(), mem_fn(&thread::join));
+}
+
 int main()
 {
-    func_ptra();
+    not_oops(1);
     return 0;
 }
