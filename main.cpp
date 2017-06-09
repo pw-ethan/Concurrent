@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <stdio.h>
 
+#include "threadsafe_stack.h"
+
 using namespace std;
 
 // Hello Concurrent World
