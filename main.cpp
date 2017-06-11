@@ -6,6 +6,7 @@
 #include <stdio.h>
 
 #include "threadsafe_stack.h"
+#include "hierarchical_mutex.h"
 
 using namespace std;
 
@@ -219,8 +220,34 @@ void fffff() {
     for_each(threads.begin(), threads.end(), mem_fn(&thread::join));
 }
 
+hierarchical_mutex high_level_mutex(10000);
+hierarchical_mutex low_level_mutex(5000);
+
+int do_low_level_stuff() {
+    return 1;
+}
+
+int low_level_func() {
+    lock_guard<hierarchical_mutex> lk(low_level_mutex);
+    return do_low_level_stuff();
+}
+
+void high_level_stuff(int some_param) {
+    cout << some_param << endl;
+}
+
+void high_level_func() {
+    lock_guard<hierarchical_mutex> lk(high_level_mutex);
+    high_level_stuff(low_level_func());
+}
+
+void thread_a() {
+    high_level_func();
+}
+
 int main()
 {
-    not_oops(1);
+    thread t(thread_a);
+    t.join();
     return 0;
 }
