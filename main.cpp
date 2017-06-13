@@ -7,6 +7,7 @@
 
 #include "threadsafe_stack.h"
 #include "hierarchical_mutex.h"
+#include "threadsafe_queue.h"
 
 using namespace std;
 
@@ -220,6 +221,7 @@ void fffff() {
     for_each(threads.begin(), threads.end(), mem_fn(&thread::join));
 }
 
+// hierarchical mutex
 hierarchical_mutex high_level_mutex(10000);
 hierarchical_mutex low_level_mutex(5000);
 
@@ -245,9 +247,62 @@ void thread_a() {
     high_level_func();
 }
 
+hierarchical_mutex other_mutex(100);
+void do_other_stuff() {
+
+}
+
+void other_stuff() {
+    high_level_func();
+    do_other_stuff();
+}
+
+void thread_b() {
+    lock_guard<hierarchical_mutex> lk(other_mutex);
+    other_stuff();
+}
+
+threadsafe_queue<int> data_queue;
+
+int data = 10;
+
+bool more_data_to_prepare() {
+    return data > 0;
+}
+int prepare_data() {
+    return data--;
+}
+void data_preparation_thread() {
+    while(more_data_to_prepare()) {
+        const int data = prepare_data();
+        data_queue.push(data);
+    }
+}
+
+void process(int data) {
+    cout << "process" << data << endl;
+}
+bool is_last() {
+    return data <= 1 && data_queue.empty();
+}
+void data_processing_thread() {
+    while(true) {
+        int data;
+        data_queue.wait_and_pop(data);
+        process(data);
+        if(is_last()) {
+            break;
+        }
+    }
+}
+
 int main()
 {
-    thread t(thread_a);
-    t.join();
+    thread ta(data_preparation_thread);
+    thread tb(data_processing_thread);
+    thread tc(data_processing_thread);
+    ta.join();
+    tb.join();
+    tc.join();
     return 0;
 }
