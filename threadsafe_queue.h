@@ -24,7 +24,7 @@ public:
     void push(T new_value) {
         std::lock_guard<std::mutex> lk(mut);
         data_queue.push(new_value);
-        data_cond.notify_all();
+        data_cond.notify_one();
     }
 
     bool try_pop(T& value) {

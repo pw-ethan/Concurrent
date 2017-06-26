@@ -4,10 +4,12 @@
 #include <vector>
 #include <algorithm>
 #include <stdio.h>
+#include <list>
 
 #include "threadsafe_stack.h"
 #include "hierarchical_mutex.h"
 #include "threadsafe_queue.h"
+#include "quick_sort.h"
 
 using namespace std;
 
@@ -298,11 +300,24 @@ void data_processing_thread() {
 
 int main()
 {
-    thread ta(data_preparation_thread);
-    thread tb(data_processing_thread);
-    thread tc(data_processing_thread);
-    ta.join();
-    tb.join();
-    tc.join();
+    int myints[] = {1, 4, 2, 5, 7, 0};
+    list<int> mlist(begin(myints), end(myints));
+
+    for(auto i : mlist) {
+        cout << i << " ";
+    }
+    cout << endl;
+    list<int> ret = parallel_quick_sort(mlist);
+    for(auto i : ret) {
+        cout << i << " ";
+    }
+    cout << endl;
+
+//    thread ta(data_preparation_thread);
+//    thread tb(data_processing_thread);
+//    thread tc(data_processing_thread);
+//    ta.join();
+//    tb.join();
+//    tc.join();
     return 0;
 }
